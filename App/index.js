@@ -1,53 +1,89 @@
-import React, { useEffect, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+// Filename: index.js
+// Combined code from all files
 
-const App = () => {
-  const fullText = 'Hi, this is Apply.\nCreating mobile apps is now as simple as typing text.\nJust input your idea and press APPLY, and our platform does the rest...';
-  const [displayedText, setDisplayedText] = useState('');
-  const [index, setIndex] = useState(0);
-  const [isPaused, setIsPaused] = useState(false);
+import React, { useState, useEffect } from 'react';
+import { SafeAreaView, ScrollView, StyleSheet, Text, Button, View, ActivityIndicator, FlatList } from 'react-native';
+import axios from 'axios';
 
-  useEffect(() => {
-    if (isPaused) return;
+const WorkoutList = () => {
+    const [workouts, setWorkouts] = useState([]);
+    const [loading, setLoading] = useState(true);
 
-    const interval = setInterval(() => {
-      setDisplayedText((prev) => prev + fullText[index]);
-      setIndex((prev) => {
-        if (prev === fullText.length - 1) {
-          setIsPaused(true);
-          setTimeout(() => {
-            setDisplayedText('');
-            setIndex(0);
-            setIsPaused(false);
-          }, 2000);
-          return 0;
+    useEffect(() => {
+        fetchWorkouts();
+    }, []);
+
+    const fetchWorkouts = async () => {
+        try {
+            const response = await axios.get('http://apihub.p.appply.xyz:3300/chatgpt', {
+                messages: [
+                    { role: "system", content: "You are a helpful assistant. Please provide a list of workouts." },
+                    { role: "user", content: `Give me a list of workouts` }
+                ],
+                model: "gpt-4o"
+            });
+            const workoutsResponse = JSON.parse(response.data.response);
+            setWorkouts(workoutsResponse.workouts);
+            setLoading(false);
+        } catch (error) {
+            console.error(error);
         }
-        return prev + 1;
-      });
-    }, 100);
+    };
 
-    return () => clearInterval(interval);
-  }, [index, isPaused]);
+    if (loading) {
+        return <ActivityIndicator size="large" color="#0000ff" />;
+    }
 
-  return (
-    <View style={styles.container}>
-      <Text style={styles.text}>{displayedText}</Text>
-    </View>
-  );
+    const renderWorkout = ({ item }) => (
+        <View style={styles.workoutItem}>
+            <Text style={styles.workoutName}>{item.name}</Text>
+            <Text>{item.description}</Text>
+            <Button title="Start Workout" onPress={() => {}} />
+        </View>
+    );
+
+    return (
+        <FlatList
+            data={workouts}
+            renderItem={renderWorkout}
+            keyExtractor={(item) => item.id}
+            contentContainerStyle={styles.list}
+        />
+    );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    backgroundColor: 'black',
-    padding: 20,
-  },
-  text: {
-    color: 'white',
-    fontSize: 24,
-    fontFamily: 'monospace',
-  },
-});
+export default function App() {
+    return (
+        <SafeAreaView style={styles.container}>
+            <Text style={styles.title}>Workout Tracker</Text>
+            <WorkoutList />
+        </SafeAreaView>
+    );
+}
 
-export default App;
+const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+        marginTop: 20,
+        paddingHorizontal: 16,
+        backgroundColor: '#ffffff',
+    },
+    title: {
+        fontSize: 24,
+        fontWeight: 'bold',
+        marginBottom: 20,
+    },
+    list: {
+        flexGrow: 1,
+    },
+    workoutItem: {
+        backgroundColor: '#f9f9f9',
+        padding: 16,
+        marginVertical: 8,
+        borderRadius: 8,
+    },
+    workoutName: {
+        fontSize: 18,
+        fontWeight: 'bold',
+    },
+});
